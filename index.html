@@ -475,8 +475,13 @@ async function callAgent(userMessage) {
     body: JSON.stringify(payload)
   });
 
-  if (!resp.ok) throw new Error(`Worker retornou ${resp.status}`);
   const data = await resp.json();
+
+  if (!resp.ok) {
+    const detalhe = data?.error?.message || data?.error || JSON.stringify(data).slice(0, 300);
+    throw new Error(`Worker ${resp.status}: ${detalhe}`);
+  }
+
   const text = data.content?.[0]?.text || "Não consegui processar.";
   conversationHistory.push({ role: "assistant", content: text });
   return text;
