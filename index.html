@@ -248,7 +248,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const CONFIG = {
   // ⚠️  Cole aqui a URL do seu Cloudflare Worker após o deploy
-  WORKER_URL: "https://soft-thunder-fb6c.lunafelipe407.workers.dev",
+  WORKER_URL: "https://SEU-WORKER.workers.dev",
 
   // URL do lojas.json — quando publicar no GitHub Pages, deixe como "./lojas.json"
   LOJAS_URL: "./lojas.json"
@@ -370,14 +370,28 @@ function removeTyping() {
 
 // ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
 function buildSystemPrompt() {
+  // Lojas sem produtos no summary (evita payload gigante)
   const lojasSummary = LOJAS.map(l =>
-    `- ${l.nome} | CNPJ: ${l.cnpj} | Rede: ${l.rede} | Sistema: ${l.sistema} | Produtos: ${l.produtos.map(p => `${p.codigo}=${p.descricao}`).join(', ')}`
+    `- ${l.nome} | CNPJ: ${l.cnpj} | Rede: ${l.rede} | Sistema: ${l.sistema}`
   ).join('\n');
+
+  // Catálogo único por sistema (sem repetir para cada loja)
+  const uniq = (arr) => [...new Map(arr.map(p => [p.codigo, p])).values()];
+  const fmt = (prods) => prods.map(p => p.codigo + '=' + p.descricao).join(', ');
+
+  const produtosMercadao = fmt(uniq(LOJAS.filter(l => l.sistema === 'Mercadão').flatMap(l => l.produtos)));
+  const produtosSusan    = fmt(uniq(LOJAS.filter(l => l.sistema === 'Susan').flatMap(l => l.produtos)));
 
   return `Você é um agente especializado em processar pedidos de supermercado/distribuição recebidos via WhatsApp. Sua função é interpretar pedidos em texto livre, identificar a loja, mapear cada produto para seu código e retornar um JSON estruturado.
 
-BASE DE DADOS:
+LOJAS CADASTRADAS:
 ${lojasSummary}
+
+CATÁLOGO SISTEMA MERCADÃO:
+${produtosMercadao}
+
+CATÁLOGO SISTEMA SUSAN:
+${produtosSusan}
 
 ═══════════════════════════════════
 COMO INTERPRETAR O FORMATO WHATSAPP
